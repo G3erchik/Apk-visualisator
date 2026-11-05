@@ -1,4 +1,4 @@
-"""Модуль для извлечения зависимостей из пакетов APK."""
+"""Module for extracting dependencies from APK packages."""
 
 import io
 import tarfile
@@ -8,9 +8,7 @@ from typing import List
 
 
 def fetch_apk_metadata(repo_url: str, package_name: str) -> str:
-    """Скачивает файл пакета по URL и возвращает содержимое .PKGINFO."""
-    # Если передана полная ссылка на .apk, используем её.
-    # Иначе склеиваем папку и имя пакета.
+    """Downloads the APK package by URL and returns .PKGINFO contents."""
     if repo_url.endswith(".apk"):
         apk_url = repo_url
     else:
@@ -18,7 +16,6 @@ def fetch_apk_metadata(repo_url: str, package_name: str) -> str:
 
     try:
         print(f"Скачивание: {apk_url}")
-        # Добавляем User-Agent, чтобы сервер не блокировал запрос
         req = urllib.request.Request(
             apk_url,
             headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -32,7 +29,6 @@ def fetch_apk_metadata(repo_url: str, package_name: str) -> str:
         print(f"Неизвестная ошибка при скачивании: {e}")
         return ""
 
-    # APK — это архив tar.gz. Открываем его в памяти и ищем файл .PKGINFO
     try:
         with tarfile.open(fileobj=io.BytesIO(apk_data), mode="r:gz") as tar:
             for member in tar.getmembers():
@@ -47,7 +43,7 @@ def fetch_apk_metadata(repo_url: str, package_name: str) -> str:
 
 
 def parse_dependencies(pkginfo_content: str) -> List[str]:
-    """Парсит текст .PKGINFO и извлекает список зависимостей."""
+    """Parses .PKGINFO text and extracts the list of dependencies."""
     dependencies = []
     for line in pkginfo_content.splitlines():
         if line.startswith("depend = "):
