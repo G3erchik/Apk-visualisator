@@ -3,7 +3,8 @@
 import argparse
 import sys
 
-from apk_parser import fetch_apk_metadata, parse_dependencies
+# Импортируем обновленные функции для Этапа 2
+from apk_parser import fetch_apkindex, parse_dependencies_from_index
 from graph_builder import DependencyGraph
 
 
@@ -43,15 +44,22 @@ def print_config(args: argparse.Namespace) -> None:
 
 
 def display_direct_dependencies(repo_url: str, package_name: str) -> None:
-    """Displays direct dependencies (Stage 2)."""
+    """Displays direct dependencies (Stage 2) via APKINDEX."""
     print(f"\nПолучение прямых зависимостей для '{package_name}'...")
-    metadata = fetch_apk_metadata(repo_url, package_name)
 
-    if not metadata:
-        print("Не удалось получить метаданные пакета.")
+    # Скачиваем и парсим индекс (APKINDEX.tar.gz)
+    index_content = fetch_apkindex(repo_url)
+
+    if not index_content:
+        print("Не удалось получить индекс пакетов.")
         return
 
-    deps = parse_dependencies(metadata)
+    deps = parse_dependencies_from_index(index_content, package_name)
+
+    if not deps:
+        print(f"Пакет '{package_name}' не найден в индексе или у него нет зависимостей.")
+        return
+
     print(f"Найдено прямых зависимостей: {len(deps)}")
     for dep in deps:
         print(f" - {dep}")
@@ -67,6 +75,7 @@ def main() -> None:
     graph = DependencyGraph()
 
     if args.test_mode:
+        # Режим тестирования (Этап 3)
         print(f"\nЗагрузка тестового графа из файла: {args.repo}")
         graph.load_from_test_file(args.repo)
         visited = graph.build_bfs_with_recursion(args.package)
@@ -74,6 +83,7 @@ def main() -> None:
         if args.ascii:
             graph.print_ascii_tree(args.package)
     else:
+        # Реальный режим (Этап 2)
         display_direct_dependencies(args.repo, args.package)
 
 
