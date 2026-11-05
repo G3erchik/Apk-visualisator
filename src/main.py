@@ -1,10 +1,11 @@
-"""Module for CLI dependency visualization tool (Stage 3)."""
+"""Module for CLI dependency visualization tool (Stages 1-4)."""
 
 import argparse
 import sys
 
-# Импортируем обновленные функции для Этапа 2
+# Импорты для Этапа 2
 from apk_parser import fetch_apkindex, parse_dependencies_from_index
+# Импорт для Этапов 3 и 4
 from graph_builder import DependencyGraph
 
 
@@ -18,6 +19,11 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("-t", "--test-mode", action="store_true", help="Тест")
     parser.add_argument("-o", "--output", default="graph.png", help="Файл")
     parser.add_argument("-a", "--ascii", action="store_true", help="ASCII")
+    # Новый флаг для Этапа 4
+    parser.add_argument(
+        "--reverse", action="store_true",
+        help="Поиск обратных зависимостей (Этап 4)"
+    )
     return parser.parse_args()
 
 
@@ -40,6 +46,7 @@ def print_config(args: argparse.Namespace) -> None:
     print(f"Test Mode: {args.test_mode}")
     print(f"Output File: {args.output}")
     print(f"ASCII Tree: {args.ascii}")
+    print(f"Reverse Mode: {args.reverse}")
     print("--------------------")
 
 
@@ -47,7 +54,6 @@ def display_direct_dependencies(repo_url: str, package_name: str) -> None:
     """Displays direct dependencies (Stage 2) via APKINDEX."""
     print(f"\nПолучение прямых зависимостей для '{package_name}'...")
 
-    # Скачиваем и парсим индекс (APKINDEX.tar.gz)
     index_content = fetch_apkindex(repo_url)
 
     if not index_content:
@@ -57,7 +63,7 @@ def display_direct_dependencies(repo_url: str, package_name: str) -> None:
     deps = parse_dependencies_from_index(index_content, package_name)
 
     if not deps:
-        print(f"Пакет '{package_name}' не найден в индексе или у него нет зависимостей.")
+        print(f"Пакет '{package_name}' не найден в индексе или нет зависимостей.")
         return
 
     print(f"Найдено прямых зависимостей: {len(deps)}")
@@ -75,13 +81,27 @@ def main() -> None:
     graph = DependencyGraph()
 
     if args.test_mode:
-        # Режим тестирования (Этап 3)
         print(f"\nЗагрузка тестового графа из файла: {args.repo}")
         graph.load_from_test_file(args.repo)
-        visited = graph.build_bfs_with_recursion(args.package)
-        print(f"Посещено пакетов при обходе BFS: {len(visited)}")
-        if args.ascii:
-            graph.print_ascii_tree(args.package)
+
+        # Логика Этапа 4: Обратные зависимости
+        if args.reverse:
+            print(f"\nПоиск обратных зависимостей для '{args.package}'...")
+            rev_deps = graph.find_reverse_dependencies(args.package)
+
+            if not rev_deps:
+                print("Обратных зависимостей не найдено.")
+            else:
+                print(f"Найдено обратных зависимостей: {len(rev_deps)}")
+                for dep in rev_deps:
+                    print(f" - {dep}")
+
+        # Логика Этапа 3: Обычный обход BFS и ASCII
+        else:
+            visited = graph.build_bfs_with_recursion(args.package)
+            print(f"Посещено пакетов при обходе BFS: {len(visited)}")
+            if args.ascii:
+                graph.print_ascii_tree(args.package)
     else:
         # Реальный режим (Этап 2)
         display_direct_dependencies(args.repo, args.package)

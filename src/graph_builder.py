@@ -34,7 +34,7 @@ class DependencyGraph:
             print(f"Ошибка при чтении файла: {e}")
 
     def build_bfs_with_recursion(self, start_package: str) -> Set[str]:
-        """Builds the graph using BFS with recursion."""
+        """Builds the graph using BFS with recursion (Stage 3)."""
         visited: Set[str] = set()
 
         def bfs_recursive(queue: deque) -> None:
@@ -60,6 +60,36 @@ class DependencyGraph:
         bfs_recursive(initial_queue)
 
         return visited
+
+    def find_reverse_dependencies(self, target_package: str) -> Set[str]:
+        """Finds reverse dependencies using BFS (Stage 4)."""
+        reverse_visited: Set[str] = set()
+
+        def bfs_reverse(queue: deque) -> None:
+            """Recursive BFS function for reverse dependencies."""
+            if not queue:
+                return
+
+            current_pkg = queue.popleft()
+
+            if current_pkg in reverse_visited:
+                return bfs_reverse(queue)
+
+            reverse_visited.add(current_pkg)
+
+            # Ищем все пакеты, которые зависят от current_pkg
+            for parent, children in self.graph.items():
+                if current_pkg in children and parent not in reverse_visited:
+                    queue.append(parent)
+
+            bfs_reverse(queue)
+
+        # Запускаем поиск с целевого пакета
+        bfs_reverse(deque([target_package]))
+
+        # Удаляем сам целевой пакет из результата
+        reverse_visited.discard(target_package)
+        return reverse_visited
 
     def print_ascii_tree(self, start_package: str) -> None:
         """Prints the graph as an ASCII tree."""
